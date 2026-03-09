@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard de Produção - Envase (Vibra Energia)</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --bg: #f3f6ef;
+      --card: #ffffff;
+      --text: #143b2e;
+      --muted: #5f6f67;
+      --line: #d9e3d7;
+      --danger: #d85c2a;
+      --warning: #c88a14;
+      --ok: #1f7a59;
+      --accent: #234f3f;
+      --soft: #edf4eb;
+      --shadow: 0 12px 30px rgba(20, 59, 46, 0.08);
+      --radius: 22px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      -webkit-text-size-adjust: 100%;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background: linear-gradient(180deg, #f7faf5 0%, var(--bg) 100%);
+      color: var(--text);
+    }
+
+    .container {
+      width: min(100%, 1480px);
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr);
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .hero-card,
+    .card,
+    .insight,
+    .timeline-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-card {
+      padding: 28px;
+    }
+
+    .title {
+      font-size: clamp(26px, 4vw, 34px);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      margin: 0 0 10px 0;
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    .status-box {
+      background: linear-gradient(135deg, #173e31, #285746);
+      color: white;
+      padding: 28px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 220px;
+    }
+
+    .status-box .eyebrow {
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      font-size: 12px;
+      opacity: .85;
+    }
+
+    .status-box .big {
+      font-size: clamp(32px, 6vw, 44px);
+      font-weight: 800;
+      margin: 12px 0 6px;
+      line-height: 1;
+    }
+
+    .status-box .small {
+      font-size: 15px;
+      opacity: .92;
+      line-height: 1.5;
+    }
+
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    .kpi {
+      padding: 20px;
+      min-height: 128px;
+    }
+
+    .kpi-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    .kpi-value {
+      font-size: clamp(22px, 3vw, 28px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+      line-height: 1.1;
+      word-break: break-word;
+    }
+
+    .kpi-note {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .danger { color: var(--danger); }
+    .ok { color: var(--ok); }
+    .warning { color: var(--warning); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+      gap: 24px;
+      margin-bottom: 24px;
+      align-items: stretch;
+    }
+
+    .card {
+      padding: 22px;
+      min-width: 0;
+    }
+
+    .card h2 {
+      margin: 0 0 8px;
+      font-size: 20px;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+    }
+
+    .card p.lead {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .chart-wrap {
+      height: 380px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .chart-wrap.small {
+      height: 320px;
+    }
+
+    .table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 14px;
+    }
+
+    table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+      font-size: 14px;
+      background: #fff;
+    }
+
+    th, td {
+      padding: 12px 10px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: .06em;
+      background: #fbfcfa;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      white-space: nowrap;
+    }
+
+    .pill-danger { background: rgba(216, 92, 42, .12); color: var(--danger); }
+    .pill-ok { background: rgba(31, 122, 89, .12); color: var(--ok); }
+    .pill-warning { background: rgba(200, 138, 20, .12); color: var(--warning); }
+
+    .insights {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    .insight {
+      padding: 22px;
+      min-width: 0;
+    }
+
+    .insight .tag {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: .08em;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    .insight h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      letter-spacing: -0.03em;
+      line-height: 1.25;
+    }
+
+    .insight p,
+    .timeline-card p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.65;
+      color: #2c4239;
+    }
+
+    .insight ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .insight li {
+      margin-bottom: 10px;
+      line-height: 1.6;
+      color: #2c4239;
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .timeline-card {
+      padding: 22px;
+      min-width: 0;
+    }
+
+    .timeline-card h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      letter-spacing: -0.03em;
+      line-height: 1.25;
+    }
+
+    .footer-note {
+      margin-top: 24px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+      text-align: center;
+    }
+
+    /* DESKTOP MENOR / TABLET */
+    @media (max-width: 1180px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .kpis {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .insights {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .timeline {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    /* CELULAR */
+    @media (max-width: 768px) {
+      .container {
+        padding: 14px;
+      }
+
+      .hero-card,
+      .status-box,
+      .card,
+      .insight,
+      .timeline-card {
+        border-radius: 18px;
+      }
+
+      .hero-card,
+      .status-box,
+      .card,
+      .insight,
+      .timeline-card {
+        padding: 18px;
+      }
+
+      .kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .kpi {
+        min-height: auto;
+        padding: 16px;
+      }
+
+      .insights,
+      .timeline {
+        grid-template-columns: 1fr;
+      }
+
+      .chart-wrap {
+        height: 280px;
+      }
+
+      .chart-wrap.small {
+        height: 260px;
+      }
+
+      .card h2 {
+        font-size: 18px;
+      }
+
+      .subtitle,
+      .card p.lead,
+      .kpi-note,
+      .insight p,
+      .timeline-card p {
+        font-size: 13px;
+      }
+
+      .status-box {
+        min-height: auto;
+        gap: 20px;
+      }
+    }
+
+    /* CELULAR MUITO PEQUENO */
+    @media (max-width: 480px) {
+      .kpis {
+        grid-template-columns: 1fr;
+      }
+
+      .title {
+        font-size: 24px;
+      }
+
+      .status-box .big {
+        font-size: 30px;
+      }
+
+      .pill {
+        font-size: 11px;
+        padding: 6px 10px;
+      }
+
+      .chart-wrap {
+        height: 240px;
+      }
+
+      .chart-wrap.small {
+        height: 220px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="hero">
+      <div class="hero-card">
+        <h1 class="title">Dashboard para Recuperação de Produção</h1>
+        <p class="subtitle">
+          Leitura do momento do mês com foco em atraso por linha, concentração por pareto,
+          esforço operacional de recuperação e risco de fechamento. Porque só olhar litros atrasados não direciona a operação e as outras áreas para o esforço certo.
+        </p>
+      </div>
+
+      <div class="status-box">
+        <div>
+          <div class="eyebrow">Status consolidado</div>
+          <div class="big">63,6%</div>
+          <div class="small">do plano produzido até o momento</div>
+        </div>
+        <div class="small">
+          Déficit acumulado de <strong>-1.358.777 L</strong><br>
+          Operação em média <strong>-1,24 dias</strong> atrás do plano
+        </div>
+      </div>
+    </section>
+
+    <section class="kpis">
+      <div class="card kpi">
+        <div class="kpi-label">Plano do período</div>
+        <div class="kpi-value">3.737.545 L</div>
+        <div class="kpi-note">Volume ideal acumulado no momento do mês.</div>
+      </div>
+      <div class="card kpi">
+        <div class="kpi-label">Produzido</div>
+        <div class="kpi-value">2.378.768 L</div>
+        <div class="kpi-note">Volume efetivamente realizado até o momento.</div>
+      </div>
+      <div class="card kpi">
+        <div class="kpi-label">Delta total</div>
+        <div class="kpi-value danger">-1.358.777 L</div>
+        <div class="kpi-note">Diferença entre produzido e ideal. Negativo = atraso.</div>
+      </div>
+      <div class="card kpi">
+        <div class="kpi-label">Maior desvio</div>
+        <div class="kpi-value danger">Bombona</div>
+        <div class="kpi-note">-606.567 L, equivalente a 44,6% do déficit total.</div>
+      </div>
+      <div class="card kpi">
+        <div class="kpi-label">Linha bloqueada</div>
+        <div class="kpi-value warning">Contentor</div>
+        <div class="kpi-note">0 L produzidos, -4,00 dias e atraso integral do plano da família.</div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h2>Onde o atraso está concentrado</h2>
+        <p class="lead">
+          Barras horizontais para mostrar o tamanho do ofensor por linha. Aqui é para enxergar rapidamente onde o mês está sendo perdido.
+        </p>
+        <div class="chart-wrap">
+          <canvas id="deltaChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Participação no déficit total</h2>
+        <p class="lead">
+          Quatro frentes concentram mais de 80% dos ofensores. Ou seja: a retomada não precisa atacar tudo ao mesmo tempo.
+        </p>
+        <div class="chart-wrap small">
+          <canvas id="paretoChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="card">
+        <h2>Diagnóstico linha a linha</h2>
+        <p class="lead">Leitura operacional com ideal, produzido, delta, saturação, dias e prioridade de ação.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Linha</th>
+                <th>Saturação</th>
+                <th>Ideal</th>
+                <th>Produzido</th>
+                <th>Delta</th>
+                <th>Dias</th>
+                <th>Status</th>
+                <th>Prioridade gerencial</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>1 Litro A</td>
+                <td>97%</td>
+                <td>725.830</td>
+                <td>611.280</td>
+                <td class="danger">-114.550</td>
+                <td class="danger">-0,74</td>
+                <td><span class="pill pill-danger">Atrasado</span></td>
+                <td>Alta</td>
+              </tr>
+              <tr>
+                <td>1 Litro B</td>
+                <td>64%</td>
+                <td>407.541</td>
+                <td>328.680</td>
+                <td class="danger">-78.861</td>
+                <td class="danger">-0,74</td>
+                <td><span class="pill pill-danger">Atrasado</span></td>
+                <td>Média</td>
+              </tr>
+              <tr>
+                <td>1 Litro C</td>
+                <td>97%</td>
+                <td>154.118</td>
+                <td>24.960</td>
+                <td class="danger">-129.158</td>
+                <td class="danger">-0,74</td>
+                <td><span class="pill pill-danger">Atrasado</span></td>
+                <td>Alta</td>
+              </tr>
+              <tr>
+                <td>1/2 Litro</td>
+                <td>76%</td>
+                <td>73.237</td>
+                <td>86.400</td>
+                <td class="ok">+13.163</td>
+                <td class="ok">+0,72</td>
+                <td><span class="pill pill-ok">Em linha</span></td>
+                <td>Baixa</td>
+              </tr>
+              <tr>
+                <td>04 Litros</td>
+                <td>88%</td>
+                <td>0</td>
+                <td>0</td>
+                <td>0</td>
+                <td>0,00</td>
+                <td><span class="pill pill-warning">Neutro</span></td>
+                <td>Monitorar</td>
+              </tr>
+              <tr>
+                <td>Balde 20 Litros</td>
+                <td>61%</td>
+                <td>314.066</td>
+                <td>241.560</td>
+                <td class="danger">-72.506</td>
+                <td class="danger">-0,92</td>
+                <td><span class="pill pill-danger">Atrasado</span></td>
+                <td>Média</td>
+              </tr>
+              <tr>
+                <td>Bombona</td>
+                <td>88%</td>
+                <td>1.052.187</td>
+                <td>445.620</td>
+                <td class="danger">-606.567</td>
+                <td class="danger">-2,31</td>
+                <td><span class="pill pill-danger">Atrasado</span></td>
+                <td>Crítica</td>
+              </tr>
+              <tr>
+                <td>Tambor</td>
+                <td>77%</td>
+                <td>874.215</td>
+                <td>603.200</td>
+                <td class="danger">-271.015</td>
+                <td class="danger">-1,24</td>
+                <td><span class="pill pill-danger">Atrasado</span></td>
+                <td>Alta</td>
+              </tr>
+              <tr>
+                <td>Contentor</td>
+                <td>77%</td>
+                <td>78.381</td>
+                <td>0</td>
+                <td class="danger">-78.381</td>
+                <td class="danger">-4,00</td>
+                <td><span class="pill pill-danger">Atrasado</span></td>
+                <td>Crítica</td>
+              </tr>
+              <tr>
+                <td>Pouch</td>
+                <td>100%</td>
+                <td>57.971</td>
+                <td>37.068</td>
+                <td class="danger">-20.903</td>
+                <td class="danger">-1,44</td>
+                <td><span class="pill pill-danger">Atrasado</span></td>
+                <td>Média</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Horas estimadas para recuperar</h2>
+        <p class="lead">
+          Converte volume em esforço operacional. Onde não havia capacidade informada, foi usada uma estimativa conservadora só para apoiar priorização.
+        </p>
+        <div class="chart-wrap">
+          <canvas id="hoursChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="insights">
+      <div class="insight">
+        <div class="tag">Insight 1</div>
+        <h3>O ofensor não é falta geral de capacidade produtiva</h3>
+        <p>
+          Há linhas acima do plano e linhas com saturação relativamente baixa. Isso sugere que o sistema está produzindo bem, mas não no sequenciamento certo. O ofensor parece mais de sincronização do que de incapacidade total.
+        </p>
+      </div>
+
+      <div class="insight">
+        <div class="tag">Insight 2</div>
+        <h3>Bombona é o centro do desvio do mês</h3>
+        <p>
+          Sozinha, Bombona responde por quase metade do déficit total. Se essa frente não for tratada como prioridade absoluta, a retomada vira esforço disperso e pouco eficaz.
+        </p>
+      </div>
+
+      <div class="insight">
+        <div class="tag">Insight 3</div>
+        <h3>Contentor não está atrasado. Está bloqueado.</h3>
+        <p>
+          Produção zerada e mais de quatro dias negativos mostram um bloqueio sistêmico. Pode ser liberação, mistura, manutenção ou prioridade mal encaixada. Enquanto isso não for resolvido, o plano segue distorcido.
+        </p>
+      </div>
+    </section>
+
+    <section class="insights">
+      <div class="insight">
+        <div class="tag">Insight 4</div>
+        <h3>Ações imediatas</h3>
+        <ul>
+          <li>Analista deve realizar diálogos semanais com a operação para alinhar a estratégia de recuperação.</li>
+          <li>Definir claramente para a operação, alinhado com o planejamento, o back out e o go ahead das ordens.</li>
+        </ul>
+      </div>
+
+      <div class="insight">
+        <div class="tag">Insight 5</div>
+        <h3>Ações imediatas</h3>
+        <ul>
+          <li>Aproximar ainda mais a operação do planejamento para tomadas rápidas de decisão.</li>
+          <li>Não visar apenas volume, mas também valor agregado.</li>
+          <li>Medir o custo das urgências e prioridades (fura-fila).</li>
+        </ul>
+      </div>
+
+      <div class="insight">
+        <div class="tag">Insight 6</div>
+        <h3>Ações imediatas</h3>
+        <ul>
+          <li>Montar uma política de níveis de prioridade com impacto real.</li>
+          <li>Gerar janelas para atender urgências e prioridades.</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="footer-note">Time line</div>
+
+    <section class="timeline">
+      <div class="timeline-card">
+        <h3>Histórico</h3>
+        <p>
+          O mês provavelmente começou com um plano sustentado por poucas famílias críticas. Ao longo da execução, o sistema foi se afastando do mix ideal, reagindo a restrições pontuais e urgências do curto prazo.
+        </p>
+      </div>
+
+      <div class="timeline-card">
+        <h3>Presente</h3>
+        <p>
+          A operação está atrasada, porém o atraso está concentrado. O quadro atual indica desequilíbrio entre linhas, uso desajustado da capacidade e restrições específicas derrubando Bombona, 1 litro e Contentor.
+        </p>
+      </div>
+
+      <div class="timeline-card">
+        <h3>Futuro</h3>
+        <p>
+          Se nada mudar, o fechamento tende a carregar backlog, mais hora extra, elevar setups e contaminar o próximo ciclo produtivo. Se atacarmos Bombona, destravar Contentor e reorganizar o bloco de 1 litro, a retomada fica mais viável.
+        </p>
+      </div>
+    </section>
+
+    <div class="footer-note">
+      Dashboard em Time line - Fred Melo.
+    </div>
+  </div>
+
+  <script>
+    const fontColor = '#143b2e';
+    const gridColor = '#dbe6da';
+
+    const commonOptions = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: fontColor, font: { family: 'Inter, Arial, sans-serif' } }
+        },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const value = ctx.raw;
+              return typeof value === 'number' ? value.toLocaleString('pt-BR') : value;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: fontColor },
+          grid: { color: gridColor }
+        },
+        y: {
+          ticks: { color: fontColor },
+          grid: { display: false }
+        }
+      }
+    };
+
+    new Chart(document.getElementById('deltaChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Bombona', 'Tambor', '1 Litro C', '1 Litro A', '1 Litro B', 'Contentor', 'Balde 20L', 'Pouch', '1/2 Litro'],
+        datasets: [{
+          label: 'Delta (L)',
+          data: [-606567, -271015, -129158, -114550, -78861, -78381, -72506, -20903, 13163],
+          backgroundColor: ['#d85c2a', '#de6c3d', '#e27b50', '#e88f66', '#eca27b', '#efb18f', '#f0bea2', '#f3ceb8', '#1f7a59'],
+          borderRadius: 10
+        }]
+      },
+      options: {
+        ...commonOptions,
+        indexAxis: 'y',
+        plugins: {
+          ...commonOptions.plugins,
+          legend: { display: false }
+        }
+      }
+    });
+
+    new Chart(document.getElementById('paretoChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Bombona', 'Tambor', '1 Litro C', '1 Litro A', 'Demais'],
+        datasets: [{
+          data: [606567, 271015, 129158, 114550, 237487],
+          backgroundColor: ['#d85c2a', '#e27b50', '#eca27b', '#f3ceb8', '#c8d8c9'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              color: fontColor,
+              usePointStyle: true,
+              boxWidth: 10,
+              padding: 16
+            }
+          }
+        },
+        cutout: '68%'
+      }
+    });
+
+    new Chart(document.getElementById('hoursChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Bombona', '1 Litro C', '1 Litro A', '1 Litro B', 'Tambor', 'Contentor', 'Balde 20L', 'Pouch'],
+        datasets: [{
+          label: 'Horas estimadas para recuperar',
+          data: [61, 37, 33, 23, 16, 8, 12, 7],
+          backgroundColor: ['#d85c2a', '#de6c3d', '#e27b50', '#eca27b', '#1f7a59', '#3d8d70', '#5ca087', '#7bb39c'],
+          borderRadius: 10
+        }]
+      },
+      options: {
+        ...commonOptions,
+        plugins: {
+          ...commonOptions.plugins,
+          legend: { display: false }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
